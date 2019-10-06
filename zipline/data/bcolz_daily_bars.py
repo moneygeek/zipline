@@ -110,7 +110,7 @@ def winsorise_uint32(df, invalid_data_behavior, column, *columns):
                 stacklevel=3,  # one extra frame for `expect_element`
             )
 
-    df[~mask].fillna(value=0)
+    df = df.mask(mask).fillna(value=0)
     return df
 
 
@@ -364,7 +364,7 @@ class BcolzDailyBarWriter(object):
             # we already have a ctable so do nothing
             return raw_data
 
-        winsorise_uint32(raw_data, invalid_data_behavior, 'volume', *OHLC)
+        raw_data = winsorise_uint32(raw_data, invalid_data_behavior, 'volume', *OHLC)
         processed = (raw_data[list(OHLC)] * 1000).round().astype('uint32')
         dates = raw_data.index.values.astype('datetime64[s]')
         check_uint32_safe(dates.max().view(np.int64), 'day')
