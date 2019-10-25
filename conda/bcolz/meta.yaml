@@ -1,5 +1,5 @@
 {% set name = "bcolz" %}
-{% set version = "0.12.1" %}
+{% set version = "1.2.1" %}
 {% set file_ext = "tar.gz" %}
 {% set hash_type = "sha256" %}
 {% set hash_value = "a8dafa42cd4f3ca130ecb81f7e778204a12c2180c18fd570ef753de58ee7ddbd" %}
