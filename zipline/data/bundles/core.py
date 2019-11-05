@@ -514,6 +514,7 @@ def _make_bundle_core():
         if timestamp is None:
             timestamp = pd.Timestamp.utcnow()
         timestr = most_recent_data(name, timestamp, environ=environ)
+        timestr = timestr.split('/')[-1]
         return BundleData(
             asset_finder=AssetFinder(
                 asset_db_path(name, timestr, environ=environ),
