@@ -317,15 +317,17 @@ def _check_symbol_mappings(df, exchanges, asset_exchange):
                 len(ambigious),
                 '' if len(ambigious) == 1 else 's',
                 '\n'.join(
-                    '%s (%s):\n  intersections: %s\n  %s' % (
-                        symbol,
-                        country_code,
-                        tuple(map(_format_range, intersections)),
-                        cs,
-                    )
-                    for (symbol, country_code), (intersections, cs) in sorted(
-                        ambigious.items(),
-                        key=first,
+                    (
+                        '%s (%s):\n  intersections: %s\n  %s' % (
+                            symbol,
+                            country_code,
+                            tuple(map(_format_range, intersections)),
+                            cs,
+                        )
+                        for (symbol, country_code), (intersections, cs) in sorted(
+                            ambigious.items(),
+                            key=first,
+                        )
                     ),
                 ),
             )

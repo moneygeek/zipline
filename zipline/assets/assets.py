@@ -653,12 +653,14 @@ class AssetFinder(object):
         return {
             row.sid: {c: row[c] for c in symbol_columns}
             for row in concat(
-                self.engine.execute(
+                (
+                    self.engine.execute(
                     self._select_most_recent_symbols_chunk(sid_group),
-                ).fetchall()
-                for sid_group in partition_all(
-                    SQLITE_MAX_VARIABLE_NUMBER,
-                    sids
+                    ).fetchall()
+                    for sid_group in partition_all(
+                        SQLITE_MAX_VARIABLE_NUMBER,
+                        sids
+                    )
                 ),
             )
         }
