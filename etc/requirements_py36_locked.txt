@@ -59,7 +59,7 @@ numpy==1.19.1             # via -r etc/requirements.in, -r etc/requirements_buil
 numpydoc==1.1.0           # via -r etc/requirements_docs.in
 packaging==20.4           # via sphinx
 pandas-datareader==0.8.1  # via -r etc/requirements.in, empyrical
-pandas==0.22.0            # via -r etc/requirements.in, dask, empyrical, odo, pandas-datareader, statsmodels, trading-calendars
+pandas==1.1.5            # via -r etc/requirements.in, dask, empyrical, odo, pandas-datareader, statsmodels, trading-calendars
 partd==1.1.0              # via dask
 pathtools==0.1.2          # via sphinx-autobuild, watchdog
 patsy==0.5.1              # via -r etc/requirements.in, statsmodels
@@ -78,7 +78,7 @@ pytz==2020.1              # via -r etc/requirements.in, babel, pandas, trading-c
 pyyaml==5.3.1             # via sphinx-autobuild
 requests==2.24.0          # via -r etc/requirements.in, pandas-datareader, responses, sphinx
 responses==0.10.15        # via -r etc/requirements_dev.in
-scipy==1.5.2              # via -r etc/requirements.in, empyrical, statsmodels
+scipy==1.5.4              # via -r etc/requirements.in, empyrical, statsmodels
 setuptools-scm==4.1.2     # via -r etc/requirements_build.in
 six==1.15.0               # via -r etc/requirements.in, cycler, flask-cors, h5py, livereload, multipledispatch, packaging, patsy, pip-tools, python-dateutil, python-interface, responses
 snowballstemmer==2.0.0    # via sphinx
