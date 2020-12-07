@@ -72,6 +72,7 @@ from zipline.utils.numpy_utils import (
     repeat_last_axis,
 )
 from zipline.utils.pandas_utils import explode
+from zipline.utils.string_formatting import bulleted_list
 
 from .domain import Domain, GENERIC
 from .graph import maybe_specialize
@@ -348,7 +349,10 @@ class SimplePipelineEngine(PipelineEngine):
             # if we don't have to.
             return chunks[0]
 
-        return categorical_df_concat(chunks, inplace=True)
+        # Filter out empty chunks. Empty dataframes lose dtype information,
+        # which makes concatenation fail.
+        nonempty_chunks = [c for c in chunks if len(c)]
+        return categorical_df_concat(nonempty_chunks, inplace=True)
 
     def run_pipeline(self, pipeline, start_date, end_date, hooks=None):
         """
@@ -573,10 +577,9 @@ class SimplePipelineEngine(PipelineEngine):
             for input_ in specialized:
                 input_data = ensure_ndarray(workspace[input_])
                 offset = offsets[term, input_]
-                # OPTIMIZATION: Don't make a copy by doing input_data[0:] if
-                # offset is zero.
-                if offset:
-                    input_data = input_data[offset:]
+                input_data = input_data[offset:]
+                if refcounts[input_] > 1:
+                    input_data = input_data.copy()
                 out.append(input_data)
         return out
 
@@ -683,6 +686,7 @@ class SimplePipelineEngine(PipelineEngine):
                     loader_groups[loader_group_key(term)],
                     key=lambda t: t.dataset
                 )
+                self._ensure_can_load(loader, to_load)
                 with hooks.loading_terms(to_load):
                     loaded = loader.load_adjusted_array(
                         domain, to_load, mask_dates, sids, mask,
@@ -690,7 +694,10 @@ class SimplePipelineEngine(PipelineEngine):
                 assert set(loaded) == set(to_load), (
                     'loader did not return an AdjustedArray for each column\n'
                     'expected: %r\n'
-                    'got:      %r' % (sorted(to_load), sorted(loaded))
+                    'got:      %r' % (
+                        sorted(to_load, key=repr),
+                        sorted(loaded, key=repr),
+                    )
                 )
                 workspace.update(loaded)
             else:
@@ -889,6 +896,17 @@ class SimplePipelineEngine(PipelineEngine):
         if hooks is None:
             hooks = []
         return DelegatingHooks(self._default_hooks + hooks)
+
+    def _ensure_can_load(self, loader, terms):
+        """Ensure that ``loader`` can load ``terms``.
+        """
+        if not loader.currency_aware:
+            bad = [t for t in terms if t.currency_conversion is not None]
+            if bad:
+                raise ValueError(
+                    "Requested currency conversion is not supported for the "
+                    "following terms:\n{}".format(bulleted_list(bad))
+                )
 
 
 def _pipeline_output_index(dates, assets, mask):

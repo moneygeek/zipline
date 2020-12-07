@@ -7,7 +7,8 @@
 =============
 
 |Gitter|
-|version status|
+|pypi version status|
+|pypi pyversion status|
 |travis status|
 |appveyor status|
 |Coverage Status|
@@ -16,7 +17,8 @@ Zipline is a Pythonic algorithmic trading library. It is an event-driven
 system for backtesting. Zipline is currently used in production as the backtesting and live-trading
 engine powering `Quantopian <https://www.quantopian.com>`_ -- a free,
 community-centered, hosted platform for building and executing trading
-strategies.
+strategies. Quantopian also offers a `fully managed service for professionals <https://factset.quantopian.com>`_
+that includes Zipline, Alphalens, Pyfolio, FactSet data, and more.
 
 - `Join our Community! <https://groups.google.com/forum/#!forum/zipline>`_
 - `Documentation <https://www.zipline.io>`_
@@ -40,62 +42,15 @@ Features
 Installation
 ============
 
-Installing With ``pip``
------------------------
+Zipline currently supports Python 2.7, 3.5, and 3.6, and may be installed via
+either pip or conda.
 
-Assuming you have all required (see note below) non-Python dependencies, you
-can install Zipline with ``pip`` via:
+**Note:** Installing Zipline is slightly more involved than the average Python
+package. See the full `Zipline Install Documentation`_ for detailed
+instructions.
 
-.. code-block:: bash
-
-    $ pip install zipline
-
-**Note:** Installing Zipline via ``pip`` is slightly more involved than the
-average Python package.  Simply running ``pip install zipline`` will likely
-fail if you've never installed any scientific Python packages before.
-
-There are two reasons for the additional complexity:
-
-1. Zipline ships several C extensions that require access to the CPython C API.
-   In order to build the C extensions, ``pip`` needs access to the CPython
-   header files for your Python installation.
-
-2. Zipline depends on `numpy <https://www.numpy.org/>`_, the core library for
-   numerical array computing in Python.  Numpy depends on having the `LAPACK
-   <https://www.netlib.org/lapack/>`_ linear algebra routines available.
-
-Because LAPACK and the CPython headers are binary dependencies, the correct way
-to install them varies from platform to platform.  On Linux, users generally
-acquire these dependencies via a package manager like ``apt``, ``yum``, or
-``pacman``.  On OSX, `Homebrew <https://brew.sh/>`_ is a popular choice
-providing similar functionality.
-
-See the full `Zipline Install Documentation`_ for more information on acquiring
-binary dependencies for your specific platform.
-
-conda
------
-
-Another way to install Zipline is via the ``conda`` package manager, which
-comes as part of `Anaconda <https://www.anaconda.com/distribution/>`_ or can be
-installed via ``pip install conda``.
-
-Once set up, you can install Zipline from our ``Quantopian`` channel:
-
-.. code-block:: bash
-
-    $ conda install -c Quantopian zipline
-
-Currently supported platforms include:
-
--  GNU/Linux 64-bit
--  OSX 64-bit
--  Windows 64-bit
-
-.. note::
-
-   Windows 32-bit may work; however, it is not currently included in
-   continuous integration tests.
+For a development installation (used to develop Zipline itself), create and
+activate a virtualenv, then run the ``etc/dev-install`` script.
 
 Quickstart
 ==========
@@ -139,17 +94,16 @@ The following code implements a simple dual moving average algorithm.
                long_mavg=long_mavg)
 
 
-You can then run this algorithm using the Zipline CLI; you'll need a `Quandl <https://docs.quandl.com/docs#section-authentication>`__ API key to ingest the default data bundle.
-Once you have your key, run the following from the command line:
+You can then run this algorithm using the Zipline CLI.
+First, you must download some sample pricing and asset data:
 
 .. code:: bash
 
-    $ QUANDL_API_KEY=<yourkey> zipline ingest -b quandl
-    $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle
+    $ zipline ingest
+    $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle --no-benchmark
 
-This will download asset pricing data data from `quandl`, and stream it through the algorithm
-over the specified time range. Then, the resulting performance DataFrame is saved in `dma.pickle`, which you
-can load and analyze from within Python.
+This will download asset pricing data data sourced from Quandl, and stream it through the algorithm over the specified time range.
+Then, the resulting performance DataFrame is saved in ``dma.pickle``, which you can load and analyze from within Python.
 
 You can find other examples in the ``zipline/examples`` directory.
 
@@ -167,17 +121,29 @@ If you are looking to start working with the Zipline codebase, navigate to the G
 
 Feel free to ask questions on the `mailing list <https://groups.google.com/forum/#!forum/zipline>`_ or on `Gitter <https://gitter.im/quantopian/zipline>`_.
 
+.. note::
+
+   Please note that Zipline is not a community-led project. Zipline is
+   maintained by the Quantopian engineering team, and we are quite small and
+   often busy.
+
+   Because of this, we want to warn you that we may not attend to your pull
+   request, issue, or direct mention in months, or even years. We hope you
+   understand, and we hope that this note might help reduce any frustration or
+   wasted time.
 
 
 .. |Gitter| image:: https://badges.gitter.im/Join%20Chat.svg
    :target: https://gitter.im/quantopian/zipline?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
-.. |version status| image:: https://img.shields.io/pypi/pyversions/zipline.svg
+.. |pypi version status| image:: https://img.shields.io/pypi/v/zipline.svg
    :target: https://pypi.python.org/pypi/zipline
-.. |travis status| image:: https://travis-ci.org/quantopian/zipline.png?branch=master
+.. |pypi pyversion status| image:: https://img.shields.io/pypi/pyversions/zipline.svg
+   :target: https://pypi.python.org/pypi/zipline
+.. |travis status| image:: https://travis-ci.org/quantopian/zipline.svg?branch=master
    :target: https://travis-ci.org/quantopian/zipline
 .. |appveyor status| image:: https://ci.appveyor.com/api/projects/status/3dg18e6227dvstw6/branch/master?svg=true
    :target: https://ci.appveyor.com/project/quantopian/zipline/branch/master
-.. |Coverage Status| image:: https://coveralls.io/repos/quantopian/zipline/badge.png
+.. |Coverage Status| image:: https://coveralls.io/repos/quantopian/zipline/badge.svg
    :target: https://coveralls.io/r/quantopian/zipline
 
 .. _`Zipline Install Documentation` : https://www.zipline.io/install

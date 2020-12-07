@@ -4,7 +4,7 @@ pip>=7.1.0
 setuptools>18.0
 
 # Logging
-Logbook==0.12.5
+Logbook==1.5.3
 
 # Scientific Libraries
 
@@ -35,7 +35,7 @@ six==1.10.0
 # For fetching remote data
 requests==2.20.1
 
-Cython==0.25.2
+Cython==0.29.21
 
 # faster array ops.
 bottleneck==1.0.0

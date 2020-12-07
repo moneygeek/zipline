@@ -9,7 +9,9 @@ from six import PY2
 if PY2:
     from abc import ABCMeta
     from types import DictProxyType
+    from cgi import escape as escape_html
     import contextlib
+    from contextlib2 import ExitStack
     from ctypes import py_object, pythonapi
 
     _new_mappingproxy = pythonapi.PyDictProxy_New
@@ -94,7 +96,8 @@ if PY2:
         return helper
 
 else:
-    from contextlib import contextmanager
+    from contextlib import contextmanager, ExitStack
+    from html import escape as escape_html
     from types import MappingProxyType as mappingproxy
     from math import ceil
 
@@ -132,12 +135,14 @@ unicode = type(u'')
 
 __all__ = [
     'PY2',
+    'ExitStack',
+    'consistent_round',
+    'contextmanager',
+    'escape_html',
     'exc_clear',
     'mappingproxy',
     'unicode',
     'update_wrapper',
     'values_as_list',
     'wraps',
-    'consistent_round',
-    'contextmanager',
 ]

@@ -1,5 +1,5 @@
 import abc
-from collections import OrderedDict
+from collections import namedtuple, OrderedDict
 from itertools import repeat
 from textwrap import dedent
 from weakref import WeakKeyDictionary
@@ -10,6 +10,8 @@ from six import (
 )
 from toolz import first
 
+from zipline.currency import Currency
+from zipline.data.fx import DEFAULT_FX_RATE
 from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
 from zipline.pipeline.domain import Domain, GENERIC
 from zipline.pipeline.factors import Factor, Latest as LatestFactor
@@ -21,8 +23,12 @@ from zipline.pipeline.term import (
     validate_dtype,
 )
 from zipline.utils.formatting import s, plural
-from zipline.utils.input_validation import ensure_dtype, expect_types
-from zipline.utils.numpy_utils import NoDefaultMissingValue
+from zipline.utils.input_validation import (
+    coerce_types,
+    ensure_dtype,
+    expect_types,
+)
+from zipline.utils.numpy_utils import float64_dtype, NoDefaultMissingValue
 from zipline.utils.preprocess import preprocess
 from zipline.utils.string_formatting import bulleted_list
 
@@ -39,11 +45,20 @@ class Column(object):
                  dtype,
                  missing_value=NotSpecified,
                  doc=None,
-                 metadata=None):
+                 metadata=None,
+                 currency_aware=False):
+        if currency_aware and dtype != float64_dtype:
+            raise ValueError(
+                'Columns cannot be constructed with currency_aware={}, '
+                'dtype={}. Currency aware columns must have a float64 dtype.'
+                .format(currency_aware, dtype)
+            )
+
         self.dtype = dtype
         self.missing_value = missing_value
         self.doc = doc
         self.metadata = metadata.copy() if metadata is not None else {}
+        self.currency_aware = currency_aware
 
     def bind(self, name):
         """
@@ -55,6 +70,7 @@ class Column(object):
             name=name,
             doc=self.doc,
             metadata=self.metadata,
+            currency_aware=self.currency_aware,
         )
 
 
@@ -66,7 +82,13 @@ class _BoundColumnDescr(object):
     This exists so that subclasses of DataSets don't share columns with their
     parent classes.
     """
-    def __init__(self, dtype, missing_value, name, doc, metadata):
+    def __init__(self,
+                 dtype,
+                 missing_value,
+                 name,
+                 doc,
+                 metadata,
+                 currency_aware):
         # Validating and calculating default missing values here guarantees
         # that we fail quickly if the user passes an unsupporte dtype or fails
         # to provide a missing value for a dtype that requires one
@@ -90,6 +112,7 @@ class _BoundColumnDescr(object):
         self.name = name
         self.doc = doc
         self.metadata = metadata
+        self.currency_aware = currency_aware
 
     def __get__(self, instance, owner):
         """
@@ -105,6 +128,8 @@ class _BoundColumnDescr(object):
             name=self.name,
             doc=self.doc,
             metadata=self.metadata,
+            currency_conversion=None,
+            currency_aware=self.currency_aware,
         )
 
 
@@ -127,6 +152,8 @@ class BoundColumn(LoadableTerm):
         The name of this column.
     metadata : dict
         Extra metadata associated with this column.
+    currency_aware : bool
+        Whether or not this column produces currency-denominated data.
 
     Notes
     -----
@@ -145,7 +172,21 @@ class BoundColumn(LoadableTerm):
                 dataset,
                 name,
                 doc,
-                metadata):
+                metadata,
+                currency_conversion,
+                currency_aware):
+        if currency_aware and dtype != float64_dtype:
+            raise AssertionError(
+                'The {} column on dataset {} cannot be constructed with '
+                'currency_aware={}, dtype={}. Currency aware columns must '
+                'have a float64 dtype.'.format(
+                    name,
+                    dataset,
+                    currency_aware,
+                    dtype,
+                )
+            )
+
         return super(BoundColumn, cls).__new__(
             cls,
             domain=dataset.domain,
@@ -156,23 +197,43 @@ class BoundColumn(LoadableTerm):
             ndim=dataset.ndim,
             doc=doc,
             metadata=metadata,
+            currency_conversion=currency_conversion,
+            currency_aware=currency_aware,
         )
 
-    def _init(self, dataset, name, doc, metadata, *args, **kwargs):
+    def _init(self,
+              dataset,
+              name,
+              doc,
+              metadata,
+              currency_conversion,
+              currency_aware,
+              *args, **kwargs):
         self._dataset = dataset
         self._name = name
         self.__doc__ = doc
         self._metadata = metadata
+        self._currency_conversion = currency_conversion
+        self._currency_aware = currency_aware
         return super(BoundColumn, self)._init(*args, **kwargs)
 
     @classmethod
-    def _static_identity(cls, dataset, name, doc, metadata, *args, **kwargs):
+    def _static_identity(cls,
+                         dataset,
+                         name,
+                         doc,
+                         metadata,
+                         currency_conversion,
+                         currency_aware,
+                         *args, **kwargs):
         return (
             super(BoundColumn, cls)._static_identity(*args, **kwargs),
             dataset,
             name,
             doc,
             frozenset(sorted(metadata.items(), key=first)),
+            currency_conversion,
+            currency_aware,
         )
 
     def __lt__(self, other):
@@ -181,20 +242,28 @@ class BoundColumn(LoadableTerm):
 
     __gt__ = __le__ = __ge__ = __lt__
 
+    def _replace(self, **kwargs):
+        kw = dict(
+            dtype=self.dtype,
+            missing_value=self.missing_value,
+            dataset=self._dataset,
+            name=self._name,
+            doc=self.__doc__,
+            metadata=self._metadata,
+            currency_conversion=self._currency_conversion,
+            currency_aware=self._currency_aware,
+        )
+        kw.update(kwargs)
+
+        return type(self)(**kw)
+
     def specialize(self, domain):
         """Specialize ``self`` to a concrete domain.
         """
         if domain == self.domain:
             return self
 
-        return type(self)(
-            dtype=self.dtype,
-            missing_value=self.missing_value,
-            dataset=self._dataset.specialize(domain),
-            name=self._name,
-            doc=self.__doc__,
-            metadata=self._metadata,
-        )
+        return self._replace(dataset=self._dataset.specialize(domain))
 
     def unspecialize(self):
         """
@@ -203,6 +272,52 @@ class BoundColumn(LoadableTerm):
         This is equivalent to ``column.specialize(GENERIC)``.
         """
         return self.specialize(GENERIC)
+
+    @coerce_types(currency=(str, Currency))
+    def fx(self, currency):
+        """
+        Construct a currency-converted version of this column.
+
+        Parameters
+        ----------
+        currency : str or zipline.currency.Currency
+            Currency into which to convert this column's data.
+
+        Returns
+        -------
+        column : BoundColumn
+            Column producing the same data as ``self``, but currency-converted
+            into ``currency``.
+        """
+        conversion = self._currency_conversion
+
+        if not self._currency_aware:
+            raise TypeError(
+                'The .fx() method cannot be called on {} because it does not '
+                'produce currency-denominated data.'.format(self.qualname)
+            )
+        elif conversion is not None and conversion.currency == currency:
+            return self
+
+        return self._replace(
+            currency_conversion=CurrencyConversion(
+                currency=currency,
+                field=DEFAULT_FX_RATE,
+            )
+        )
+
+    @property
+    def currency_conversion(self):
+        """Specification for currency conversions applied for this term.
+        """
+        return self._currency_conversion
+
+    @property
+    def currency_aware(self):
+        """
+        Whether or not this column produces currency-denominated data.
+        """
+        return self._currency_aware
 
     @property
     def dataset(self):
@@ -227,12 +342,13 @@ class BoundColumn(LoadableTerm):
 
     @property
     def qualname(self):
+        """The fully-qualified name of this column.
         """
-        The fully-qualified name of this column.
-
-        Generated by doing '.'.join([self.dataset.__name__, self.name]).
-        """
-        return '.'.join([self.dataset.qualname, self.name])
+        out = '.'.join([self.dataset.qualname, self.name])
+        conversion = self._currency_conversion
+        if conversion is not None:
+            out += '.fx({!r})'.format(conversion.currency.code)
+        return out
 
     @property
     def latest(self):
@@ -683,7 +799,7 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
     :class:`~zipline.pipeline.data.DataSet` objects, each of which has the same
     columns, domain, and ndim.
 
-    :class:`DataSetFamily` objects are defined with by one or more
+    :class:`DataSetFamily` objects are defined with one or more
     :class:`~zipline.pipeline.data.Column` objects, plus one additional field:
     ``extra_dims``.
 
@@ -867,3 +983,9 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
         Slice = cls._make_dataset(coords)
         cls._slice_cache[hash_key] = Slice
         return Slice
+
+
+CurrencyConversion = namedtuple(
+    'CurrencyConversion',
+    ['currency', 'field'],
+)
