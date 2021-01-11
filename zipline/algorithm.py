@@ -560,7 +560,6 @@ class TradingAlgorithm(object):
             data_frequency=self.sim_params.data_frequency,
             asset_finder=self.asset_finder,
             metrics=self._metrics_set,
-            financing_costs=self.sim_params.financing_costs,
         )
 
     def _create_generator(self, sim_params):

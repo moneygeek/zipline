@@ -154,6 +154,9 @@ class AlgorithmSimulator(object):
             self.simulation_dt = midnight_dt
             algo.on_dt_changed(midnight_dt)
 
+            # accrue interest
+            self.sim_params.financing_costs(algo.account)
+
             metrics_tracker.handle_market_open(
                 midnight_dt,
                 algo.data_portal,

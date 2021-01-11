@@ -24,9 +24,8 @@ import numpy as np
 import pandas as pd
 from trading_calendars import get_calendar
 
-from zipline.finance._finance_ext import PositionStats
 from zipline.finance.trading import SimulationParameters
-from zipline.protocol import Portfolio
+from zipline.protocol import Account
 from zipline.sources import SpecificEquityTrades
 from zipline.sources.test_source import create_trade
 
@@ -39,7 +38,7 @@ def create_simulation_parameters(year=2006,
                                  data_frequency='daily',
                                  emission_rate='daily',
                                  trading_calendar=None,
-                                 financing_costs: Callable[[Portfolio, PositionStats], float] = None):
+                                 financing_costs: Callable[[Account], float] = None):
 
     if not trading_calendar:
         trading_calendar = get_calendar("NYSE")

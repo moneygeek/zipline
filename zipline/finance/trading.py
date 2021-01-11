@@ -17,8 +17,7 @@ from typing import Callable
 import logbook
 import pandas as pd
 
-from zipline.finance._finance_ext import PositionStats
-from zipline.protocol import Portfolio
+from zipline.protocol import Account
 from zipline.utils.memoize import remember_last
 from zipline.utils.pandas_utils import normalize_date
 
@@ -37,7 +36,7 @@ class SimulationParameters(object):
                  emission_rate='daily',
                  data_frequency='daily',
                  arena='backtest',
-                 financing_costs: Callable[[Portfolio, PositionStats], float] = None):
+                 financing_costs: Callable[[Account], float] = None):
 
         assert type(start_session) == pd.Timestamp
         assert type(end_session) == pd.Timestamp
@@ -89,7 +88,7 @@ class SimulationParameters(object):
         )[1]
 
         if financing_costs is None:
-            financing_costs = lambda p, s: 0
+            financing_costs = lambda a: 0.
         self._financing_costs = financing_costs
 
     @property

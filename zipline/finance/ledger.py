@@ -363,8 +363,7 @@ class Ledger(object):
         The daily returns as an ndarray. Days that have not yet finished will
         hold a value of ``np.nan``.
     """
-    def __init__(self, trading_sessions, capital_base, data_frequency,
-                 financing_costs: Callable[[zp.Portfolio], float]):
+    def __init__(self, trading_sessions, capital_base, data_frequency):
         if len(trading_sessions):
             start = trading_sessions[0]
         else:
@@ -412,7 +411,6 @@ class Ledger(object):
         # calculation is done, but the last sale price either before the period
         # start, or when the price at execution.
         self._payout_last_sale_prices = {}
-        self.financing_costs = financing_costs
 
     @property
     def todays_returns(self):
@@ -703,6 +701,11 @@ class Ledger(object):
 
         return total
 
+    def financing_costs(self):
+        _cost = self._account.accrued_interest
+        self._account.accrued_interest = 0.
+        return -_cost
+
     def update_portfolio(self):
         """Force a computation of the current portfolio state.
         """
@@ -719,7 +722,7 @@ class Ledger(object):
             position_stats.net_value
         )
         portfolio.positions_exposure = position_stats.net_exposure
-        self._cash_flow(self._get_payout_total(pt.positions) + self.financing_costs(portfolio, position_stats))
+        self._cash_flow(self._get_payout_total(pt.positions) + self.financing_costs())
 
         start_value = portfolio.portfolio_value
 

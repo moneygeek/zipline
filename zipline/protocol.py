@@ -273,6 +273,10 @@ class Account(object):
         self_.net_leverage = 0.0
         self_.net_liquidation = 0.0
 
+    def accrue_interest(self, interest):
+        self_ = MutableView(self)
+        self_.accrued_interest += interest
+
     def __setattr__(self, attr, value):
         raise AttributeError('cannot mutate Account objects')
 

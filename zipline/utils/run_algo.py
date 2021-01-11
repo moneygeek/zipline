@@ -5,8 +5,7 @@ from typing import Callable
 
 import click
 
-from zipline.finance._finance_ext import PositionStats
-from zipline.protocol import Portfolio
+from zipline.protocol import Account
 
 try:
     from pygments import highlight
@@ -85,7 +84,7 @@ def _run(handle_data,
          environ,
          blotter,
          benchmark_spec,
-         financing_costs):
+         financing_costs: Callable[[Account], float]):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -318,7 +317,7 @@ def run_algorithm(start,
                   strict_extensions=True,
                   environ=os.environ,
                   blotter='default',
-                  financing_costs: Callable[[Portfolio, PositionStats], float] = None):
+                  financing_costs: Callable[[Account], float] = None):
     """
     Run a trading algorithm.
 
