@@ -80,6 +80,7 @@ from zipline.finance.asset_restrictions import (
     SecurityListRestrictions,
 )
 from zipline.assets import Asset, Equity, Future
+from zipline.finance.trading import SimulationParameters
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.pipeline import Pipeline
@@ -215,7 +216,7 @@ class TradingAlgorithm(object):
     """
 
     def __init__(self,
-                 sim_params,
+                 sim_params: SimulationParameters,
                  data_portal=None,
                  asset_finder=None,
                  # Algorithm API
@@ -559,6 +560,7 @@ class TradingAlgorithm(object):
             data_frequency=self.sim_params.data_frequency,
             asset_finder=self.asset_finder,
             metrics=self._metrics_set,
+            financing_costs=self.sim_params.financing_costs,
         )
 
     def _create_generator(self, sim_params):

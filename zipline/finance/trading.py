@@ -12,10 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Callable
 
 import logbook
 import pandas as pd
 
+from zipline.finance._finance_ext import PositionStats
+from zipline.protocol import Portfolio
 from zipline.utils.memoize import remember_last
 from zipline.utils.pandas_utils import normalize_date
 
@@ -33,7 +36,8 @@ class SimulationParameters(object):
                  capital_base=DEFAULT_CAPITAL_BASE,
                  emission_rate='daily',
                  data_frequency='daily',
-                 arena='backtest'):
+                 arena='backtest',
+                 financing_costs: Callable[[Portfolio, PositionStats], float] = None):
 
         assert type(start_session) == pd.Timestamp
         assert type(end_session) == pd.Timestamp
@@ -84,6 +88,10 @@ class SimulationParameters(object):
             self._end_session
         )[1]
 
+        if financing_costs is None:
+            financing_costs = lambda p, s: 0
+        self._financing_costs = financing_costs
+
     @property
     def capital_base(self):
         return self._capital_base
@@ -129,6 +137,10 @@ class SimulationParameters(object):
         return self._trading_calendar
 
     @property
+    def financing_costs(self):
+        return self._financing_costs
+
+    @property
     @remember_last
     def sessions(self):
         return self._trading_calendar.sessions_in_range(
@@ -147,7 +159,8 @@ class SimulationParameters(object):
             capital_base=self.capital_base,
             emission_rate=self.emission_rate,
             data_frequency=data_frequency,
-            arena=self.arena
+            arena=self.arena,
+            financing_costs=self.financing_costs
         )
 
     def __repr__(self):

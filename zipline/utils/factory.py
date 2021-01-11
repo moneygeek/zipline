@@ -17,13 +17,17 @@
 """
 Factory functions to prepare useful data.
 """
-import pandas as pd
-import numpy as np
 from datetime import timedelta, datetime
+from typing import Callable
+
+import numpy as np
+import pandas as pd
 from trading_calendars import get_calendar
 
-from zipline.sources import SpecificEquityTrades
+from zipline.finance._finance_ext import PositionStats
 from zipline.finance.trading import SimulationParameters
+from zipline.protocol import Portfolio
+from zipline.sources import SpecificEquityTrades
 from zipline.sources.test_source import create_trade
 
 
@@ -34,7 +38,8 @@ def create_simulation_parameters(year=2006,
                                  num_days=None,
                                  data_frequency='daily',
                                  emission_rate='daily',
-                                 trading_calendar=None):
+                                 trading_calendar=None,
+                                 financing_costs: Callable[[Portfolio, PositionStats], float] = None):
 
     if not trading_calendar:
         trading_calendar = get_calendar("NYSE")
@@ -60,6 +65,7 @@ def create_simulation_parameters(year=2006,
         data_frequency=data_frequency,
         emission_rate=emission_rate,
         trading_calendar=trading_calendar,
+        financing_costs=financing_costs
     )
 
     return sim_params
