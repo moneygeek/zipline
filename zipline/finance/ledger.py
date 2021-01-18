@@ -704,7 +704,6 @@ class Ledger(object):
     def financing_costs(self):
         _cost = self._account.accrued_interest
         self._account.accrued_interest = 0.
-        self._account._dirty_account = False
         return -_cost
 
     def update_portfolio(self):

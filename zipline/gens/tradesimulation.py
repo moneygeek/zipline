@@ -154,9 +154,6 @@ class AlgorithmSimulator(object):
             self.simulation_dt = midnight_dt
             algo.on_dt_changed(midnight_dt)
 
-            # accrue interest
-            self.sim_params.financing_costs(algo.account)
-
             metrics_tracker.handle_market_open(
                 midnight_dt,
                 algo.data_portal,
@@ -174,6 +171,9 @@ class AlgorithmSimulator(object):
                 if splits:
                     algo.blotter.process_splits(splits)
                     metrics_tracker.handle_splits(splits)
+
+            # accrue interest
+            self.sim_params.financing_costs(algo.account)
 
         def on_exit():
             # Remove references to algo, data portal, et al to break cycles
